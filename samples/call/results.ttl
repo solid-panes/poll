@@ -9,10 +9,11 @@
 
 poll:this sched:response <#alice>, <#bob>, <#carol> .
 
-<#alice> dc:author <https://alice.example/profile/card#me> ; sched:cell <#a1>, <#a2>, <#a4> .
+<#alice> dc:author <https://alice.example/profile/card#me> ; sched:cell <#a1>, <#a2>, <#a4>, <#a6> .
 <#a1> sched:option poll:o1 ; sched:availabilty sched:Yes .
 <#a2> sched:option poll:o2 ; sched:availabilty sched:Yes .
-<#a4> sched:option poll:o4 ; sched:availabilty sched:Yes .
+<#a4> sched:option poll:o4 ; sched:availabilty sched:Maybe .
+<#a6> sched:option poll:o6 ; sched:availabilty sched:Yes .
 
 <#bob> dc:author <https://bob.example/profile/card#me> ; sched:cell <#b1>, <#b2>, <#b3>, <#b5> .
 <#b1> sched:option poll:o1 ; sched:availabilty sched:No .
@@ -20,7 +21,8 @@ poll:this sched:response <#alice>, <#bob>, <#carol> .
 <#b3> sched:option poll:o3 ; sched:availabilty sched:Maybe .
 <#b5> sched:option poll:o5 ; sched:availabilty sched:Yes .
 
-<#carol> dc:author <https://carol.example/profile/card#me> ; sched:cell <#c2>, <#c3>, <#c4> .
+<#carol> dc:author <https://carol.example/profile/card#me> ; sched:cell <#c2>, <#c3>, <#c4>, <#c6> .
 <#c2> sched:option poll:o2 ; sched:availabilty sched:Yes .
 <#c3> sched:option poll:o3 ; sched:availabilty sched:Yes .
-<#c4> sched:option poll:o4 ; sched:availabilty sched:Maybe .
+<#c4> sched:option poll:o4 ; sched:availabilty sched:Yes .
+<#c6> sched:option poll:o6 ; sched:availabilty sched:Maybe .

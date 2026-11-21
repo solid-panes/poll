@@ -1,11 +1,13 @@
-// poll-pane.js: a poll kept in a pod. Pick a time, or vote on options.
+// poll-pane.js: find a time for a call or a meeting, with a poll kept in a pod.
+// Offer hours on one or more days; people say which they can make. Other things can be voted on too.
 //
 // One file, no imports. It reads and writes the format of SolidOS's own scheduling pane
 // (http://www.w3.org/ns/pim/schedule#), so a poll made there opens here and the other way round:
 //
 //   index.ttl     <#this> a sched:SchedulableEvent ; cal:summary "Dinner" ; dc:author <WebID> ;
 //                     sched:option <#o1>, <#o2> ; sched:results <results.ttl> .
-//                 <#o1> cal:dtstart "2026-12-04T19:00:00"^^xsd:dateTime .     (a time)
+//                 <#o1> cal:dtstart "2026-12-04T14:00:00Z"^^xsd:dateTime ;    (an hour: an exact moment,
+//                       cal:dtend "2026-12-04T15:00:00Z"^^xsd:dateTime .       shown in each person's own time zone)
 //                 <#o2> rdfs:label "The Thai place" .                         (anything else)
 //
 //   results.ttl   <index.ttl#this> sched:response <#r1> .
@@ -66,6 +68,14 @@ const CSS = `
 .pol button.pol-primary { background: #6d4aff; border-color: #6d4aff; color: #fff; }
 .pol button.pol-primary:hover { background: #5b3be0; }
 .pol button.pol-quiet { border-color: transparent; color: #a12727; padding: 4px 8px; }
+.pol-day { margin: 10px 2px -2px; font-size: 14px; font-weight: 700; color: #33405c; letter-spacing: .01em; }
+.pol-day:first-child { margin-top: 0; }
+.pol-zone { margin: 14px 0 0; font-size: 14px; color: #5b6272; }
+.pol-fields label.pol-narrow { flex: 0 1 110px; }
+.pol select { font: inherit; font-size: 15px; width: 100%; padding: 8px 10px; border: 1px solid #cfd4e0; border-radius: 10px; background: #fff; color: #1f2430; }
+.pol-more { margin-top: 12px; }
+.pol-more summary { cursor: pointer; font-size: 14px; font-weight: 600; color: #4b3bd6; }
+.pol-more .pol-fields { margin-top: 10px; }
 .pol-empty { padding: 18px; border: 1px dashed #cfd4e0; border-radius: 14px; color: #5b6272; text-align: center; }
 .pol-box { margin-top: 22px; padding: 16px; background: #fafbfe; border: 1px solid #e3e6ee; border-radius: 14px; }
 .pol-box h3 { margin: 0 0 4px; font-size: 16px; }
@@ -113,15 +123,29 @@ function optionLabel (store, option, doc) {
   if (text) return text.value
   const when = store.any(option, sym(CAL + 'dtstart'), null, doc)
   if (!when) return option.value.split('#').pop()
-  return timeLabel(when.value)
+  const end = store.any(option, sym(CAL + 'dtend'), null, doc)
+  return timeLabel(when.value, end ? end.value : '')
 }
 
-function timeLabel (value) {
-  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value)
-  const date = new Date(dateOnly ? value + 'T12:00:00' : value)
+const dateOnly = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value)
+const moment = (value) => new Date(dateOnly(value) ? value + 'T12:00:00' : value)
+const clock = (date) => date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+// The day a time falls on, for the person looking: "Fri 4 Dec 2026".
+function dayLabel (value) {
+  const date = moment(value)
+  return isNaN(date) ? '' : date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+}
+// The time itself, in the viewer's own time zone: "14:00 to 15:00", or "14:00", or "All day".
+function hourLabel (value, end) {
+  const date = moment(value)
   if (isNaN(date)) return value
-  const day = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
-  return dateOnly ? day : day + ', ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  if (dateOnly(value)) return 'All day'
+  const until = end ? moment(end) : null
+  return clock(date) + (until && !isNaN(until) ? ' to ' + clock(until) : '')
+}
+function timeLabel (value, end) {
+  const day = dayLabel(value)
+  return day ? day + ', ' + hourLabel(value, end) : value
 }
 
 function personName (store, person) {
@@ -137,9 +161,20 @@ function readPoll (store, subject, resultsDoc) {
   const doc = subject.doc()
   const options = store.each(subject, sym(SCHED + 'option'), null, doc).map(node => {
     const when = store.any(node, sym(CAL + 'dtstart'), null, doc)
-    return { node, when: when ? when.value : '', label: optionLabel(store, node, doc), answers: [] }
+    const end = store.any(node, sym(CAL + 'dtend'), null, doc)
+    const text = store.any(node, sym(RDFS_LABEL), null, doc)
+    const timed = !!when && !isNaN(moment(when.value))
+    return {
+      node,
+      when: when ? when.value : '',
+      at: timed ? moment(when.value).getTime() : null,
+      day: timed ? dayLabel(when.value) : '',
+      short: timed ? hourLabel(when.value, end ? end.value : '') + (text ? ' · ' + text.value : '') : '',
+      label: optionLabel(store, node, doc),
+      answers: []
+    }
   })
-  options.sort((a, b) => (a.when && b.when) ? a.when.localeCompare(b.when) : (a.when ? -1 : b.when ? 1 : a.node.value.localeCompare(b.node.value, undefined, { numeric: true })))
+  options.sort((a, b) => (a.at !== null && b.at !== null) ? a.at - b.at : (a.at !== null ? -1 : b.at !== null ? 1 : a.node.value.localeCompare(b.node.value, undefined, { numeric: true })))
   const byNode = new Map(options.map(o => [o.node.value, o]))
   const byTime = new Map(options.filter(o => o.when).map(o => [o.when, o]))
   const people = new Map()
@@ -200,7 +235,7 @@ const pane = {
   audience: [],
 
   label (subject, context) {
-    try { return isPoll(context.session.store, subject) ? 'Poll' : null } catch { return null }
+    try { return isPoll(context.session.store, subject) ? 'Find a time' : null } catch { return null }
   },
 
   shouldGetFocus (subject, context) {
@@ -246,6 +281,7 @@ const pane = {
     const notes = root.appendChild(el(dom, 'p', 'pol-notes'))
     const status = root.appendChild(el(dom, 'div', 'pol-status'))
     status.setAttribute('role', 'status')
+    const zoneLine = root.appendChild(el(dom, 'p', 'pol-zone'))
     const list = root.appendChild(el(dom, 'ul', 'pol-list'))
     const owner = root.appendChild(el(dom, 'div'))
     const foot = root.appendChild(el(dom, 'div', 'pol-foot'))
@@ -260,6 +296,7 @@ const pane = {
     const mine = () => { const who = me(); const author = store.any(subject, sym(DC + 'author'), null, doc); return !!who && !!author && author.value === who.value }
     const literal = (value, datatype) => { const rdf = rdflib(); return datatype ? rdf.literal(value, sym(XSD + datatype)) : rdf.literal(value) }
     const st = (s, p, o, g) => rdflib().st(s, p, o, g)
+    const zone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time' } catch { return 'local time' } }
 
     async function change (deletions, insertions, done) {
       if (busy) return
@@ -308,36 +345,63 @@ const pane = {
     function ownerTools () {
       owner.replaceChildren()
       if (!mine()) return
+      const taken = () => new Set(store.each(subject, sym(SCHED + 'option'), null, doc).map(o => o.value))
+      const fresh = (used) => { let n = used.size + 1; while (used.has(doc.value + '#o' + n)) n++; used.add(doc.value + '#o' + n); return sym(doc.value + '#o' + n) }
       const add = owner.appendChild(el(dom, 'form', 'pol-box pol-add'))
-      add.appendChild(el(dom, 'h3', '', 'Add an option'))
-      add.appendChild(el(dom, 'p', 'pol-hint', 'A date and time, or anything else to vote on. Fill in one of the two.'))
+      add.appendChild(el(dom, 'h3', '', 'Offer times'))
+      add.appendChild(el(dom, 'p', 'pol-hint', 'Pick a day and a range of hours. Each hour becomes one choice. Times are in your time zone (' + zone() + '); everyone else sees them in theirs.'))
       const fields = add.appendChild(el(dom, 'div', 'pol-fields'))
-      const whenLabel = fields.appendChild(el(dom, 'label', '', 'Date and time'))
-      const when = whenLabel.appendChild(el(dom, 'input'))
-      when.type = 'datetime-local'
-      const textLabel = fields.appendChild(el(dom, 'label', '', 'Or some text'))
-      const text = textLabel.appendChild(el(dom, 'input'))
-      text.type = 'text'
-      text.maxLength = 120
-      text.placeholder = 'The Thai place'
-      const addButton = fields.appendChild(el(dom, 'button', 'pol-primary', 'Add'))
+      const day = fields.appendChild(el(dom, 'label', '', 'Day')).appendChild(el(dom, 'input'))
+      day.type = 'date'
+      day.required = true
+      const hours = (labelText, chosen) => {
+        const select = fields.appendChild(el(dom, 'label', 'pol-narrow', labelText)).appendChild(el(dom, 'select'))
+        for (let h = 0; h <= 24; h++) { const o = select.appendChild(el(dom, 'option', '', String(h).padStart(2, '0') + ':00')); o.value = String(h); if (h === chosen) o.selected = true }
+        return select
+      }
+      const from = hours('From', 9)
+      const to = hours('To', 12)
+      const addButton = fields.appendChild(el(dom, 'button', 'pol-primary', 'Add times'))
       addButton.type = 'submit'
       add.addEventListener('submit', (event) => {
         event.preventDefault()
+        const first = +from.value
+        const last = +to.value
+        if (!day.value) { say('Pick a day.', 'bad'); return }
+        if (last <= first) { say('"To" must be later than "From".', 'bad'); return }
+        const have = new Set(store.each(subject, sym(SCHED + 'option'), null, doc).map(o => store.any(o, sym(CAL + 'dtstart'), null, doc)).filter(Boolean).map(t => moment(t.value).getTime()))
+        const used = taken()
+        const insertions = []
+        const [y, m, d] = day.value.split('-').map(Number)
+        for (let h = first; h < last; h++) {
+          const start = new Date(y, m - 1, d, h, 0, 0)
+          if (have.has(start.getTime())) continue
+          const option = fresh(used)
+          insertions.push(st(subject, sym(SCHED + 'option'), option, doc))
+          insertions.push(st(option, sym(CAL + 'dtstart'), literal(start.toISOString().replace('.000Z', 'Z'), 'dateTime'), doc))
+          insertions.push(st(option, sym(CAL + 'dtend'), literal(new Date(y, m - 1, d, h + 1, 0, 0).toISOString().replace('.000Z', 'Z'), 'dateTime'), doc))
+        }
+        if (!insertions.length) { say('Those hours are already offered.'); return }
+        change([], insertions, (insertions.length / 3 === 1 ? '1 time' : insertions.length / 3 + ' times') + ' added.')
+      })
+      const more = add.appendChild(el(dom, 'details', 'pol-more'))
+      more.appendChild(el(dom, 'summary', '', 'Or add something else to vote on'))
+      const moreFields = more.appendChild(el(dom, 'div', 'pol-fields'))
+      const text = moreFields.appendChild(el(dom, 'label', '', 'A choice that is not a time')).appendChild(el(dom, 'input'))
+      text.type = 'text'
+      text.maxLength = 120
+      text.placeholder = 'Video call, or in person'
+      const textButton = moreFields.appendChild(el(dom, 'button', '', 'Add'))
+      textButton.type = 'button'
+      textButton.addEventListener('click', () => {
         const label = text.value.trim()
-        if (!when.value && !label) { say('Give a date and time, or some text.', 'bad'); return }
-        const taken = new Set(store.each(subject, sym(SCHED + 'option'), null, doc).map(o => o.value))
-        let n = taken.size + 1
-        while (taken.has(doc.value + '#o' + n)) n++
-        const option = sym(doc.value + '#o' + n)
-        const insertions = [st(subject, sym(SCHED + 'option'), option, doc)]
-        if (when.value) insertions.push(st(option, sym(CAL + 'dtstart'), literal(when.value.length === 16 ? when.value + ':00' : when.value, 'dateTime'), doc))
-        if (label) insertions.push(st(option, sym(RDFS_LABEL), literal(label), doc))
-        change([], insertions, 'Option added.')
+        if (!label) { say('Type the choice first.', 'bad'); return }
+        const option = fresh(taken())
+        change([], [st(subject, sym(SCHED + 'option'), option, doc), st(option, sym(RDFS_LABEL), literal(label), doc)], 'Choice added.')
       })
 
       const edit = owner.appendChild(el(dom, 'form', 'pol-box pol-edit'))
-      edit.appendChild(el(dom, 'h3', '', 'About this poll'))
+      edit.appendChild(el(dom, 'h3', '', 'About this meeting'))
       const editFields = edit.appendChild(el(dom, 'div', 'pol-fields'))
       const field = (labelText, term, multi) => {
         const label = editFields.appendChild(el(dom, 'label', '', labelText))
@@ -348,7 +412,7 @@ const pane = {
         input.value = now ? now.value : ''
         return { term, input }
       }
-      const inputs = [field('Title', 'summary'), field('Where', 'location'), field('Notes', 'comment', true)]
+      const inputs = [field('What it is for', 'summary'), field('Where, or the call link', 'location'), field('Notes', 'comment', true)]
       const saveButton = editFields.appendChild(el(dom, 'button', 'pol-primary', 'Save'))
       saveButton.type = 'submit'
       edit.addEventListener('submit', (event) => {
@@ -371,7 +435,7 @@ const pane = {
       const poll = readPoll(store, subject, resultsDoc)
       const who = me()
       const text = (term) => { const value = store.any(subject, sym(CAL + term), null, doc); return value ? value.value : '' }
-      title.textContent = text('summary') || 'Poll'
+      title.textContent = text('summary') || 'Find a time'
       const author = store.any(subject, sym(DC + 'author'), null, doc)
       const count = poll.people.length
       meta.textContent = (author ? 'By ' + personName(store, author) + ' · ' : '') + (count === 1 ? '1 person has answered' : count + ' people have answered')
@@ -383,14 +447,19 @@ const pane = {
       list.replaceChildren()
       const score = (option) => option.answers.filter(a => a.answer === 'Yes').length * 2 + option.answers.filter(a => a.answer === 'Maybe').length
       const best = Math.max(0, ...poll.options.map(score))
+      let lastDay = null
       for (const option of poll.options) {
+        if (option.day !== lastDay) {
+          lastDay = option.day
+          list.appendChild(el(dom, 'li', 'pol-day', option.day || 'Also to decide'))
+        }
         const yes = option.answers.filter(a => a.answer === 'Yes')
         const maybe = option.answers.filter(a => a.answer === 'Maybe')
         const item = list.appendChild(el(dom, 'li', 'pol-option' + (best > 0 && score(option) === best ? ' pol-lead' : '')))
         item.dataset.option = option.node.value
         const head = item.appendChild(el(dom, 'div', 'pol-head'))
-        head.appendChild(el(dom, 'span', 'pol-name', option.label))
-        if (best > 0 && score(option) === best) head.appendChild(el(dom, 'span', 'pol-tag', 'Leading'))
+        head.appendChild(el(dom, 'span', 'pol-name', option.short || option.label))
+        if (best > 0 && score(option) === best) head.appendChild(el(dom, 'span', 'pol-tag', 'Best so far'))
         head.appendChild(el(dom, 'span', 'pol-count', yes.length + ' yes' + (maybe.length ? ' · ' + maybe.length + ' if need be' : '')))
         const bar = item.appendChild(el(dom, 'div', 'pol-bar'))
         const total = Math.max(count, 1)
@@ -409,7 +478,7 @@ const pane = {
             button.addEventListener('click', () => answer(option, value))
           }
           if (mine()) {
-            const remove = choose.appendChild(el(dom, 'button', 'pol-quiet', 'Remove option'))
+            const remove = choose.appendChild(el(dom, 'button', 'pol-quiet', 'Remove'))
             remove.type = 'button'
             let armed = false
             remove.addEventListener('click', () => {
@@ -419,8 +488,10 @@ const pane = {
           }
         }
       }
-      if (!poll.options.length) list.appendChild(el(dom, 'li', 'pol-empty', mine() ? 'No options yet. Add the first one below.' : 'This poll has no options yet.'))
-      if (!who && !status.textContent) say('Log in to answer.')
+      if (!poll.options.length) list.appendChild(el(dom, 'li', 'pol-empty', mine() ? 'No times offered yet. Add some below.' : 'No times have been offered yet.'))
+      zoneLine.textContent = poll.options.some(o => o.at !== null) ? 'Times are shown in your time zone: ' + zone() + '.' : ''
+      zoneLine.hidden = !zoneLine.textContent
+      if (!who && !status.textContent) say('Log in to say when you can make it.')
       ownerTools()
 
       foot.replaceChildren()

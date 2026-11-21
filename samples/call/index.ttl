@@ -1,0 +1,22 @@
+@prefix sched: <http://www.w3.org/ns/pim/schedule#> .
+@prefix cal: <http://www.w3.org/2002/12/cal/ical#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# A sample with made-up people. It is read-only here: answers are saved only on a pod.
+# Each hour is an exact moment (UTC); the pane shows it in the viewer's own time zone.
+<#this> a sched:SchedulableEvent ;
+    cal:summary "Call about the tool index" ;
+    cal:location "Video call, link to follow" ;
+    cal:comment "One hour. Say which hours you can make." ;
+    dc:author <https://alice.example/profile/card#me> ;
+    sched:option <#o1>, <#o2>, <#o3>, <#o4>, <#o5>, <#o6> ;
+    sched:results <results.ttl> .
+
+<#o1> cal:dtstart "2026-12-03T14:00:00Z"^^xsd:dateTime ; cal:dtend "2026-12-03T15:00:00Z"^^xsd:dateTime .
+<#o2> cal:dtstart "2026-12-03T15:00:00Z"^^xsd:dateTime ; cal:dtend "2026-12-03T16:00:00Z"^^xsd:dateTime .
+<#o3> cal:dtstart "2026-12-03T16:00:00Z"^^xsd:dateTime ; cal:dtend "2026-12-03T17:00:00Z"^^xsd:dateTime .
+<#o4> cal:dtstart "2026-12-04T14:00:00Z"^^xsd:dateTime ; cal:dtend "2026-12-04T15:00:00Z"^^xsd:dateTime .
+<#o5> cal:dtstart "2026-12-04T15:00:00Z"^^xsd:dateTime ; cal:dtend "2026-12-04T16:00:00Z"^^xsd:dateTime .
+<#o6> rdfs:label "Record the call" .
