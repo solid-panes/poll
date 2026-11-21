@@ -1,0 +1,20 @@
+@prefix sched: <http://www.w3.org/ns/pim/schedule#> .
+@prefix cal: <http://www.w3.org/2002/12/cal/ical#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# A sample poll with made-up people. It is read-only here: answers are saved only on a pod.
+<#this> a sched:SchedulableEvent ;
+    cal:summary "Team dinner in December" ;
+    cal:location "Somewhere near the office" ;
+    cal:comment "Pick the evenings you can make, and say which place you would like." ;
+    dc:author <https://alice.example/profile/card#me> ;
+    sched:option <#o1>, <#o2>, <#o3>, <#o4>, <#o5> ;
+    sched:results <results.ttl> .
+
+<#o1> cal:dtstart "2026-12-03T19:00:00"^^xsd:dateTime .
+<#o2> cal:dtstart "2026-12-04T19:00:00"^^xsd:dateTime .
+<#o3> cal:dtstart "2026-12-10T19:30:00"^^xsd:dateTime .
+<#o4> rdfs:label "The Thai place" .
+<#o5> rdfs:label "Pizza by the river" .

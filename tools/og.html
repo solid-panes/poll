@@ -1,0 +1,85 @@
+<!doctype html>
+<!-- The picture shown when a link to solid-panes.github.io/poll is shared (og.png, 1200 × 630).
+     node tools/og.mjs renders this page to ../og.png. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Atkinson'; font-weight: 100 900; src: url('atkinson.woff2') format('woff2') }
+  * { box-sizing: border-box; margin: 0 }
+  body { width: 1200px; height: 630px; overflow: hidden; font-family: 'Atkinson', system-ui, sans-serif; color: #fff;
+    background:
+      radial-gradient(900px 520px at 88% 12%, rgba(124, 77, 255, .55), transparent 62%),
+      radial-gradient(700px 500px at 4% 104%, rgba(64, 196, 255, .22), transparent 60%),
+      linear-gradient(135deg, #0b1220 0%, #151d33 55%, #1d1740 100%) }
+  .grid { position: absolute; inset: 0; opacity: .18;
+    background-image: linear-gradient(rgba(255,255,255,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.09) 1px, transparent 1px);
+    background-size: 48px 48px; mask-image: radial-gradient(900px 500px at 70% 40%, #000, transparent 75%) }
+  .left { position: absolute; left: 72px; top: 70px; width: 520px }
+  .brand { display: flex; align-items: center; gap: 22px }
+  .brand img { width: 104px; height: 96px; filter: drop-shadow(0 10px 30px rgba(124, 77, 255, .65)) }
+  .brand b { font-size: 104px; font-weight: 800; letter-spacing: -.035em; line-height: 1 }
+  .pill { display: inline-block; margin-top: 26px; font-size: 26px; font-weight: 700; padding: 6px 20px; border-radius: 999px; background: #7c4dff; letter-spacing: .02em }
+  h1 { margin-top: 20px; font-size: 50px; font-weight: 700; line-height: 1.1; letter-spacing: -.02em; text-wrap: balance }
+  h1 em { font-style: normal; color: #b9a3ff }
+  p { margin-top: 22px; font-size: 27px; line-height: 1.35; color: #c3cde0; max-width: 480px }
+  p code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 24px; color: #fff; background: rgba(255,255,255,.12); padding: 2px 8px; border-radius: 8px }
+  .tags { position: absolute; left: 72px; bottom: 60px; display: flex; gap: 12px }
+  .tags span { font-size: 20px; font-weight: 600; padding: 8px 18px; border-radius: 999px; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.16); color: #dbe3f3 }
+
+  .win { position: absolute; left: 640px; top: 96px; width: 640px; height: 560px; border-radius: 22px; overflow: hidden;
+    background: #f8f9fb; box-shadow: 0 40px 90px rgba(3, 6, 20, .65), 0 0 0 1px rgba(255,255,255,.14); transform: rotate(-2.200deg) }
+  .bar { height: 68px; background: #1d293d; display: flex; align-items: center; gap: 14px; padding: 0 18px }
+  .bar img { width: 40px; height: 37px }
+  .addr { flex: 1; height: 44px; border-radius: 999px; background: #fff; display: flex; align-items: center; padding: 0 6px 0 16px; gap: 10px; box-shadow: 0 0 0 3px #a48bff }
+  .addr i { width: 18px; height: 18px; border-radius: 50%; border: 2.200px solid #62748e }
+  .addr span { flex: 1; color: #0f172b; font-size: 19px; white-space: nowrap; overflow: hidden }
+  .addr span b { color: #7c4dff; font-weight: 800 }
+  .addr u { text-decoration: none; background: #7c4dff; color: #fff; font-weight: 700; font-size: 16px; padding: 7px 18px; border-radius: 999px }
+  .note { padding: 26px 34px; color: #1d1d1f }
+  .nav { display: flex; justify-content: space-between; margin-bottom: 22px }
+  .nav span { font-size: 16px; font-weight: 700; color: #5b2fe0; background: #f1ecff; padding: 6px 14px; border-radius: 999px }
+  .date { font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: #86868b; margin-bottom: 4px }
+  .note h2 { font-size: 40px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 14px }
+  .note h3 { font-size: 23px; font-weight: 700; color: #7c4dff; margin: 20px 0 10px }
+  .note div.t { font-size: 21px; line-height: 1.5; color: #1d1d1f; margin-bottom: 8px }
+  .note a { color: #5b2fe0; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; font-weight: 600 }
+  .note a.miss { color: #86868b; text-decoration: none; border-bottom: 2px dashed #b0b0b6; font-weight: 400 }
+  .task { display: flex; align-items: center; gap: 12px; font-size: 21px; margin-bottom: 8px }
+  .task i { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #b0b0b6; flex: none }
+  .task.done { color: #86868b; text-decoration: line-through } .task.done i { background: #7c4dff; border-color: #7c4dff }
+.pl{padding:20px 22px;background:#f6f7fb;display:flex;flex-direction:column;gap:10px}
+.pl h2{font-size:27px;font-weight:800;color:#1f2430;letter-spacing:-.01em}
+.pl .m{font-size:14.5px;color:#5b6272;margin-top:-6px}
+.op{background:#fff;border:1px solid #e3e6ee;border-radius:14px;padding:12px 16px}
+.op.lead{border-color:#6d4aff;box-shadow:0 0 0 1.500px #6d4aff}
+.op .h{display:flex;align-items:baseline;gap:10px}.op .h b{font-size:19px;color:#1f2430}.op .h i{font-style:normal;font-size:12.500px;font-weight:700;background:#ede9fe;color:#5b21b6;border-radius:999px;padding:1px 9px}.op .h u{margin-left:auto;text-decoration:none;font-size:14.5px;color:#5b6272}
+.op .b{height:7px;border-radius:999px;background:#eef1f6;margin:9px 0 9px;overflow:hidden;display:flex}.op .b s{display:block;height:100%;background:#2fa866}.op .b s+s{background:#e5b53b}
+.op .c{display:flex;gap:8px}.op .c span{font-size:14px;font-weight:700;padding:5px 13px;border-radius:999px;border:1px solid #cfd4e0;color:#33405c;background:#fff}.op .c span.y{background:#2fa866;border-color:#2fa866;color:#fff}
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="left">
+    <div class="brand"><img src="og-emblem.svg" alt=""><b>poll</b></div>
+    <div class="pill">a SolidOS pane</div>
+    <h1>Pick a time, <em>or vote</em></h1>
+    <p>A poll kept in your pod. Dates or any options; yes, if need be, or no.</p>
+  </div>
+  <div class="tags"><span>one file</span><span>in your pod</span><span>loaded by link</span></div>
+
+  <div class="win">
+    <div class="bar">
+      <img src="og-emblem.svg" alt="">
+      <div class="addr"><i></i><span>…/browser/<b>?pane=</b>…/poll-pane.js</span><u>Go</u></div>
+    </div>
+    <div class="pl">
+      <h2>Team dinner in December</h2>
+      <div class="m">By Alice · 3 people have answered</div>
+      <div class="op"><div class="h"><b>Thu 3 Dec, 19:00</b><u>1 yes</u></div><div class="b"><s style="width:33%"></s></div><div class="c"><span>Yes</span><span>If need be</span><span>No</span></div></div>
+      <div class="op lead"><div class="h"><b>Fri 4 Dec, 19:00</b><i>Leading</i><u>3 yes</u></div><div class="b"><s style="width:100%"></s></div><div class="c"><span class="y">Yes</span><span>If need be</span><span>No</span></div></div>
+      <div class="op"><div class="h"><b>The Thai place</b><u>1 yes · 1 if need be</u></div><div class="b"><s style="width:33%"></s><s style="width:33%"></s></div><div class="c"><span>Yes</span><span>If need be</span><span>No</span></div></div>
+    </div>
+  </div>
+</body>
+</html>

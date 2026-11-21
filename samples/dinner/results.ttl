@@ -1,0 +1,26 @@
+@prefix sched: <http://www.w3.org/ns/pim/schedule#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix poll: <index.ttl#> .
+
+<https://alice.example/profile/card#me> foaf:name "Alice" .
+<https://bob.example/profile/card#me> foaf:name "Bob" .
+<https://carol.example/profile/card#me> foaf:name "Carol" .
+
+poll:this sched:response <#alice>, <#bob>, <#carol> .
+
+<#alice> dc:author <https://alice.example/profile/card#me> ; sched:cell <#a1>, <#a2>, <#a4> .
+<#a1> sched:option poll:o1 ; sched:availabilty sched:Yes .
+<#a2> sched:option poll:o2 ; sched:availabilty sched:Yes .
+<#a4> sched:option poll:o4 ; sched:availabilty sched:Yes .
+
+<#bob> dc:author <https://bob.example/profile/card#me> ; sched:cell <#b1>, <#b2>, <#b3>, <#b5> .
+<#b1> sched:option poll:o1 ; sched:availabilty sched:No .
+<#b2> sched:option poll:o2 ; sched:availabilty sched:Yes .
+<#b3> sched:option poll:o3 ; sched:availabilty sched:Maybe .
+<#b5> sched:option poll:o5 ; sched:availabilty sched:Yes .
+
+<#carol> dc:author <https://carol.example/profile/card#me> ; sched:cell <#c2>, <#c3>, <#c4> .
+<#c2> sched:option poll:o2 ; sched:availabilty sched:Yes .
+<#c3> sched:option poll:o3 ; sched:availabilty sched:Yes .
+<#c4> sched:option poll:o4 ; sched:availabilty sched:Maybe .
